@@ -82,8 +82,8 @@ npm run dev
 
 ## 📸 截图
 
-![2](D:\JavaProjects\项目截图\2.png)
+![](D:\JavaProjects\InkHub\images\2.png)
 
-![1](D:\JavaProjects\项目截图\1.png)
+![1](D:\JavaProjects\InkHub\images\1.png)
 
-![3](D:\JavaProjects\项目截图\3.png)
+![3](D:\JavaProjects\InkHub\images\3.png)
