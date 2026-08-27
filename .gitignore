@@ -1,0 +1,25 @@
+# ===== Java / Maven =====
+InkHub-backend/target/
+*.class
+*.jar
+*.war
+
+# ===== IDE =====
+.idea/
+*.iml
+.vscode/
+InkHub-backend/.idea/
+InkHub-web/.idea/
+
+# ===== Node / Vite =====
+InkHub-web/node_modules/
+InkHub-web/dist/
+*.local
+
+# ===== 运行时数据（不提交本地图片/上传文件）=====
+InkHub-backend/uploads/
+*.log
+
+# ===== 系统文件 =====
+.DS_Store
+Thumbs.db

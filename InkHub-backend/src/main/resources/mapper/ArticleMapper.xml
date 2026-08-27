@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 文章 Mapper：全部手写 SQL 统一放这里
+     IDEA 对 XML 动态 SQL 原生支持（不报红），注解里写 <script> 会误报红 -->
+<mapper namespace="com.example.InkHub_backend.mapper.ArticleMapper">
+
+    <!-- 文章流：最新/最热 + 可选分类/关键词过滤（只查已发布）
+         作者昵称用 LEFT JOIN user，分类名 LEFT JOIN category，避免内连接把没分类的文章丢掉 -->
+    <select id="selectArticlePage" resultType="com.example.InkHub_backend.vo.ArticleVO">
+        SELECT a.id, a.title, a.summary, a.cover, a.category_id, c.name AS category_name,
+        a.author_id, u.nickname AS author_name, a.top, a.view_count,
+        a.like_count, a.favorite_count, a.comment_count, a.publish_time
+        FROM article a
+        LEFT JOIN user u ON u.id = a.author_id
+        LEFT JOIN category c ON c.id = a.category_id
+        WHERE a.status = 1
+        <if test="q.categoryId != null">AND a.category_id = #{q.categoryId}</if>
+        <if test="q.keyword != null and q.keyword != ''">
+            AND (a.title LIKE CONCAT('%', #{q.keyword}, '%') OR a.summary LIKE CONCAT('%', #{q.keyword}, '%'))
+        </if>
+        ORDER BY a.top DESC,
+        <choose>
+            <when test="q.sort == 'hot'">a.view_count + a.like_count * 5 DESC</when>
+            <otherwise>a.publish_time DESC</otherwise>
+        </choose>
+        LIMIT #{offset}, #{size}
+    </select>
+
+    <!-- 文章流总数（和上面同一个 where，分页要用） -->
+    <select id="countArticlePage" resultType="long">
+        SELECT COUNT(*)
+        FROM article a
+        WHERE a.status = 1
+        <if test="q.categoryId != null">AND a.category_id = #{q.categoryId}</if>
+        <if test="q.keyword != null and q.keyword != ''">
+            AND (a.title LIKE CONCAT('%', #{q.keyword}, '%') OR a.summary LIKE CONCAT('%', #{q.keyword}, '%'))
+        </if>
+    </select>
+
+    <!-- 按标签查文章（先查中间表拿 article_id，再查文章；排序规则同文章流） -->
+    <select id="selectPageByTag" resultType="com.example.InkHub_backend.vo.ArticleVO">
+        SELECT a.id, a.title, a.summary, a.cover, a.category_id, c.name AS category_name,
+               a.author_id, u.nickname AS author_name, a.top, a.view_count,
+               a.like_count, a.favorite_count, a.comment_count, a.publish_time
+        FROM article_tag at
+                 JOIN article a ON a.id = at.article_id AND a.status = 1
+                 LEFT JOIN user u ON u.id = a.author_id
+                 LEFT JOIN category c ON c.id = a.category_id
+        WHERE at.tag_id = #{tagId}
+        ORDER BY a.top DESC, a.publish_time DESC
+        LIMIT #{offset}, #{size}
+    </select>
+
+    <!-- 按标签查总数 -->
+    <select id="countByTag" resultType="long">
+        SELECT COUNT(*) FROM article_tag at JOIN article a ON a.id = at.article_id
+        WHERE at.tag_id = #{tagId} AND a.status = 1
+    </select>
+
+    <!-- 文章详情（含分类名/作者昵称） -->
+    <select id="selectDetail" resultType="com.example.InkHub_backend.vo.ArticleDetailVO">
+        SELECT a.*, c.name AS category_name, u.nickname AS author_name
+        FROM article a
+                 LEFT JOIN category c ON c.id = a.category_id
+                 LEFT JOIN user u ON u.id = a.author_id
+        WHERE a.id = #{id}
+    </select>
+
+    <!-- 分类列表 + 文章数 -->
+    <select id="selectCategoryWithCount" resultType="com.example.InkHub_backend.vo.CategoryVO">
+        SELECT c.id, c.name, c.sort, COUNT(a.id) AS article_count
+        FROM category c
+                 LEFT JOIN article a ON a.category_id = c.id AND a.status = 1
+        GROUP BY c.id, c.name, c.sort
+        ORDER BY c.sort ASC
+    </select>
+
+    <!-- 标签 + 文章数（热门标签） -->
+    <select id="selectTagWithCount" resultType="com.example.InkHub_backend.vo.TagVO">
+        SELECT t.id, t.name, COUNT(at.article_id) AS article_count
+        FROM tag t
+                 LEFT JOIN article_tag at ON at.tag_id = t.id
+        GROUP BY t.id, t.name
+        ORDER BY article_count DESC
+    </select>
+
+    <!-- 同分类推荐：已发布、排除自己、按浏览量倒序（相关文章） -->
+    <select id="selectRelatedByCategory" resultType="com.example.InkHub_backend.vo.ArticleVO">
+        SELECT id, title, summary, cover, view_count, like_count, comment_count
+        FROM article
+        WHERE category_id = #{categoryId} AND status = 1 AND id != #{id}
+        ORDER BY view_count DESC
+        LIMIT #{limit}
+    </select>
+
+    <!-- 同标签推荐：已发布、排除自己、按浏览量倒序（相关文章） -->
+    <select id="selectRelatedByTag" resultType="com.example.InkHub_backend.vo.ArticleVO">
+        SELECT a.id, a.title, a.summary, a.cover, a.view_count, a.like_count, a.comment_count
+        FROM article a
+                 JOIN article_tag at ON at.article_id = a.id
+        WHERE at.tag_id = #{tagId} AND a.status = 1 AND a.id != #{id}
+        ORDER BY a.view_count DESC
+        LIMIT #{limit}
+    </select>
+
+</mapper>
