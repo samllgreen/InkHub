@@ -82,10 +82,10 @@ npm run dev
 
 ## 📸 截图
 
-![](.\images\2.png)
+![](./images/2.png)
 
 
 
-![1](.\images\1.png)
+![1](./images/1.png)
 
-![3](.\images\3.png)
+![3](./images/3.png)
